@@ -15,6 +15,9 @@ const listingSchema = new mongoose.Schema({
   status:      { type: String, enum: ['available','claimed','delivered','expired'], default: 'available' },
   claimedBy:   { type: ObjectId, ref: 'User' },
   volunteer:   { type: ObjectId, ref: 'User' },
+  travelMode:  { type: String, enum: ['walking','2-wheeler','4-wheeler'], default: '2-wheeler' },
+  deliveredAt: { type: Date },
+  kgFood:      { type: Number, default: 1 }, // for impact calculation
   location: {
     type:        { type: String, default: 'Point' },
     coordinates: { type: [Number] }                // [longitude, latitude]

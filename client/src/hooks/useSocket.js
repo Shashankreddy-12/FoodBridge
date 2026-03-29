@@ -62,6 +62,31 @@ export function useSocket(token) {
       });
     });
 
+    // Volunteer assigned — show donor and recipient who's coming
+    socket.on('volunteer_assigned', (data) => {
+      useNotificationStore.getState().add({
+        title: `Volunteer assigned: ${data.volunteerName}`,
+        isUrgent: false,
+        ...data,
+      });
+    });
+
+    // Real-time volunteer location update for recipient
+    socket.on('volunteer_location', (data) => {
+      // Store latest volunteer location in notification store
+      // so Feed/map can show moving volunteer pin
+      useNotificationStore.getState().setVolunteerLocation(data);
+    });
+
+    // Delivery complete notification
+    socket.on('delivery_complete', (data) => {
+      useNotificationStore.getState().add({
+        title: '✅ Your food has been delivered!',
+        isUrgent: false,
+        ...data,
+      });
+    });
+
     socket.on('disconnect', () => console.log('Socket disconnected'));
 
     return () => socket.disconnect();

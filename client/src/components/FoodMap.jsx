@@ -27,6 +27,13 @@ const greenIcon = createIcon('#22c55e');
 const orangeIcon = createIcon('#f97316');
 const redIcon = createIcon('#ef4444');
 
+const volunteerIcon = new L.divIcon({ 
+    className: 'volunteer-icon', 
+    html: `<div style="background-color: #3b82f6; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 10px;">🚴</div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+});
+
 const getIcon = (listing) => {
     const minsLeft = (new Date(listing.expiresAt) - Date.now()) / 60000;
     if (minsLeft <= 30) return redIcon;
@@ -43,7 +50,7 @@ const formatTimeLeft = (expiresAt) => {
     return `${hrs}h ${m}m left`;
 };
 
-export default function FoodMap({ listings, userLocation, onSelectListing }) {
+export default function FoodMap({ listings, userLocation, onSelectListing, volunteerLocation }) {
     if (!userLocation) {
         return (
             <div className="flex items-center justify-center h-[500px] bg-gray-100 rounded-lg shadow-inner">
@@ -109,6 +116,17 @@ export default function FoodMap({ listings, userLocation, onSelectListing }) {
                         </Popup>
                     </Marker>
                 ))}
+
+                {volunteerLocation && (
+                    <Marker 
+                        position={[volunteerLocation.lat, volunteerLocation.lng]}
+                        icon={volunteerIcon}
+                    >
+                        <Popup>
+                            <strong>🚴 Volunteer en route</strong>
+                        </Popup>
+                    </Marker>
+                )}
             </MapContainer>
         </div>
     );

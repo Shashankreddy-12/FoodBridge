@@ -27,6 +27,7 @@ export default function Feed() {
 
     // Bind real-time notifications to feed
     const notifications = useNotificationStore(s => s.notifications);
+    const volunteerLocation = useNotificationStore(s => s.volunteerLocation);
 
     const requestLocation = () => {
         setLocError(null);
@@ -264,6 +265,7 @@ export default function Feed() {
                             listings={filteredListings} 
                             userLocation={userLocation} 
                             onSelectListing={setSelectedListing} 
+                            volunteerLocation={volunteerLocation}
                         />
                     </div>
                 </div>

@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import FoodListing from '../models/FoodListing.js';
 
 export default function setupSocket(io) {
   // Authenticate every socket connection with JWT
@@ -19,6 +20,17 @@ export default function setupSocket(io) {
     // Join personal room for targeted events
     socket.join(`user_${socket.userId}`);
     console.log(`User ${socket.userId} connected`);
+
+    socket.on('location_update', ({ deliveryId, lat, lng }) => {
+      // Relay volunteer location to recipient in real-time
+      FoodListing.findById(deliveryId).then(listing => {
+        if (listing && listing.claimedBy) {
+          io.to(`user_${listing.claimedBy}`).emit('volunteer_location', {
+            lat, lng, deliveryId
+          });
+        }
+      }).catch(err => console.error('location_update error:', err.message));
+    });
 
     socket.on('disconnect', () => {
       console.log(`User ${socket.userId} disconnected`);

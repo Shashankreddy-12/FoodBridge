@@ -113,9 +113,6 @@ export default function Dashboard() {
 
         {/* Card 3: Volunteer */}
         <Link to="/volunteer" className="group flex flex-col bg-orange-50 rounded-2xl p-8 border-t-8 border-orange-600 shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 relative h-full">
-            <div className="absolute top-4 right-4 bg-gray-900 text-white text-xs font-bold px-2 py-1 rounded shadow-sm opacity-90">
-                Coming Soon
-            </div>
             <div className="text-5xl mb-4 text-center">🚴</div>
             <h2 className="text-2xl font-bold text-gray-900 text-center mb-3">Volunteer</h2>
             <p className="text-gray-600 text-center mb-8 flex-1">

@@ -10,7 +10,7 @@ import Dashboard from './pages/Dashboard';
 import PostListing from './pages/PostListing';
 import Feed from './pages/Feed';
 import MyListings from './pages/MyListings';
-import VolunteerPlaceholder from './pages/VolunteerPlaceholder';
+import Volunteer from './pages/Volunteer';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -51,7 +51,7 @@ function App() {
           path="/volunteer" 
           element={
             <ProtectedRoute>
-              <VolunteerPlaceholder />
+              <Volunteer />
             </ProtectedRoute>
           } 
         />
