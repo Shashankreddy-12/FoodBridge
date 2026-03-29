@@ -9,7 +9,7 @@ const fetch = (...args) => import("node-fetch").then(({ default: f }) => f(...ar
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+  "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent";
 
 // ─────────────────────────────────────────────────────────────
 //  RISK TIER LOOKUP  (deterministic pre-check before Gemini)

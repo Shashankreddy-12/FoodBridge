@@ -27,9 +27,13 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'User already exists' });
         }
 
-        const coordinates = (lng !== undefined && lat !== undefined) 
-            ? [parseFloat(lng), parseFloat(lat)] 
-            : [];
+        let location;
+        if (lng != null && lat != null) {
+            location = {
+                type: 'Point',
+                coordinates: [parseFloat(lng), parseFloat(lat)]
+            };
+        }
 
         const newUser = new User({
             name,
@@ -37,10 +41,7 @@ router.post('/register', async (req, res) => {
             password,
             phone,
             orgName,
-            location: {
-                type: 'Point',
-                coordinates
-            }
+            ...(location && { location })
         });
 
         await newUser.save();

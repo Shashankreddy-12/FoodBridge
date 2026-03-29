@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
   resetToken:       { type: String },
   resetTokenExpiry: { type: Date },
   location: {
-    type:        { type: String, default: 'Point' },
+    type:        { type: String, enum: ['Point'] },
     coordinates: { type: [Number] }   // [longitude, latitude]
   },
   rating:     { type: Number, default: 5 },
