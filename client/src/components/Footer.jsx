@@ -27,9 +27,10 @@ export default function Footer() {
 
           {/* Right Column */}
           <div className="flex flex-col space-y-3">
-            <h4 className="text-lg font-bold text-white mb-2">Hackathon 3.0</h4>
-            <p className="text-green-100/80 transition w-fit font-medium text-sm">Built for Vashisht Hackathon 3.0 🏆</p>
-            <p className="text-green-100/80 transition w-fit font-medium text-sm mt-1">EcoTech Track — Problem Statement #4</p>
+            <h4 className="text-lg font-bold text-white mb-2">🌍 Our Mission</h4>
+            <p className="text-green-100/80 transition w-fit font-medium text-sm leading-relaxed">
+              Connecting surplus food with people who need it, reducing waste one meal at a time.
+            </p>
             
             <div className="flex flex-wrap gap-2 mt-4">
               <span className="bg-green-800/50 border border-green-700/50 text-green-100 text-xs px-2 py-1 rounded font-bold uppercase tracking-wider">React</span>
@@ -43,7 +44,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="pt-6 border-t border-green-800/50 text-center">
           <p className="text-green-100/60 text-sm font-medium">
-            © 2026 FoodBridge. Made with 💚 to fight food waste.
+            © 2026 FoodBridge. Made with 💚
           </p>
         </div>
       </div>

@@ -23,7 +23,39 @@ export default function PostListing() {
     const [checkingSafety, setCheckingSafety] = useState(false);
 
     const [autoFilled, setAutoFilled] = useState(false);
-    
+    const [images, setImages] = useState([]);
+
+    const toBase64 = (file) => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+    });
+
+    const handleImageChange = async (e) => {
+        const files = Array.from(e.target.files);
+        if (images.length + files.length > 3) {
+            setError('Maximum 3 images allowed.');
+            return;
+        }
+
+        const newImages = [];
+        for (let file of files) {
+            if (file.size > 2 * 1024 * 1024) {
+                setError('Each image must be under 2MB.');
+                return;
+            }
+            const base64 = await toBase64(file);
+            newImages.push(base64);
+        }
+        
+        setError('');
+        setImages(prev => [...prev, ...newImages].slice(0, 3));
+    };
+
+    const removeImage = (index) => {
+        setImages(prev => prev.filter((_, i) => i !== index));
+    };
+
     const navigate = useNavigate();
     const token = useAuthStore(s => s.token);
     const setAuth = useAuthStore(s => s.setAuth);
@@ -70,7 +102,7 @@ export default function PostListing() {
         setSubmitting(true);
 
         try {
-            const payload = { ...formData, ...location };
+            const payload = { ...formData, ...location, images };
             await api.post('/api/listings', payload, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -155,6 +187,21 @@ export default function PostListing() {
                         <label className="block text-sm font-medium text-gray-700">Address <span className="text-red-500">*</span></label>
                         <input type="text" name="address" placeholder="Physical street address..." className="w-full px-3 py-2 mt-1 border rounded focus:ring-green-500 text-sm" onChange={handleChange} value={formData.address} required />
                         {autoFilled && <p className="text-xs text-green-600 mt-1 font-semibold">📍 Address auto-filled from GPS. You can edit it.</p>}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Food Photos (Optional, max 3)</label>
+                        <input type="file" accept="image/*" multiple onChange={handleImageChange} className="w-full px-3 py-2 mt-1 border rounded focus:ring-green-500 text-sm" />
+                        {images.length > 0 && (
+                            <div className="flex gap-2 mt-2">
+                                {images.map((img, i) => (
+                                    <div key={i} className="relative w-24 h-24 border rounded overflow-hidden">
+                                        <img src={img} alt={`Preview ${i+1}`} className="w-full h-full object-cover" />
+                                        <button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold leading-none">&times;</button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex space-x-2">

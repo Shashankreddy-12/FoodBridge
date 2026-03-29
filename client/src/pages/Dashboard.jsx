@@ -55,21 +55,42 @@ export default function Dashboard() {
   const [forecastLoading, setForecastLoading] = useState(true);
   const [forecastError, setForecastError] = useState(null);
 
-  // Global Impact States tracking Socket responses dynamically
-  const impactStats = useNotificationStore(s => s.impactStats);
-  const setImpactStats = useNotificationStore(s => s.setImpactStats);
+  const [impactData, setImpactData] = useState({
+    totalMealsSaved: 0,
+    totalKgFoodSaved: 0,
+    totalCO2Saved: 0,
+    totalDeliveries: 0,
+  });
+
+  const [tickerListings, setTickerListings] = useState([]);
+  const [tickerLoading, setTickerLoading] = useState(true);
 
   useEffect(() => {
      api.get('/api/impact')
-        .then(res => setImpactStats(res.data))
+        .then(res => setImpactData(res.data || {
+            totalMealsSaved: 0,
+            totalKgFoodSaved: 0,
+            totalCO2Saved: 0,
+            totalDeliveries: 0,
+        }))
         .catch(() => {});
-  }, [setImpactStats]);
+  }, []);
 
-  const resolvedImpact = impactStats || {};
-  const countMeals = useCountUp(resolvedImpact.totalMealsSaved || 0);
-  const countFood = useCountUp(resolvedImpact.totalKgFoodSaved || 0);
-  const countCO2 = useCountUp(resolvedImpact.totalCO2Saved || 0);
-  const countDeliveries = useCountUp(resolvedImpact.totalDeliveries || 0);
+  useEffect(() => {
+    if (!token) return;
+    const lat = user?.location?.coordinates?.[1] || 13.0827;
+    const lng = user?.location?.coordinates?.[0] || 80.2707;
+    
+    api.get(`/api/listings?lat=${lat}&lng=${lng}`)
+       .then(res => setTickerListings(res.data.data || res.data || []))
+       .catch(() => setTickerListings([]))
+       .finally(() => setTickerLoading(false));
+  }, [token, user]);
+
+  const countMeals = useCountUp(impactData.totalMealsSaved);
+  const countFood = useCountUp(impactData.totalKgFoodSaved);
+  const countCO2 = useCountUp(impactData.totalCO2Saved);
+  const countDeliveries = useCountUp(impactData.totalDeliveries);
 
   // Live real-time connection
   useSocket(token);
@@ -119,6 +140,55 @@ export default function Dashboard() {
     <>
     <div className="min-h-screen bg-gray-50 flex flex-col items-center pt-24 md:pt-28 pb-12 px-4 sm:px-6">
       <Navbar />
+      
+      {/* Scrolling Recent Listings Banner */}
+      <div className="w-full h-[120px] bg-[#14532d] flex items-center overflow-hidden relative mb-6">
+        <style>{`
+          @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .ticker-track:hover { animation-play-state: paused; }
+        `}</style>
+        <div className="absolute left-0 z-10 bg-[#14532d] h-full flex items-center px-4 md:px-6 shadow-[10px_0_15px_-3px_rgba(20,83,45,1)]">
+           <span className="text-white font-bold whitespace-nowrap hidden sm:block">🌱 Live Food Near You</span>
+           <span className="text-white font-bold text-xl sm:hidden">🌱</span>
+        </div>
+        
+        <div className="flex pl-[200px] h-full items-center ticker-track" style={{ width: 'max-content', animation: 'scroll 40s linear infinite' }}>
+           {tickerLoading ? (
+               <div className="text-green-200 ml-4 font-medium whitespace-nowrap">Loading nearby food... 🍲</div>
+           ) : tickerListings.length === 0 ? (
+               <div className="text-green-200 ml-4 font-medium whitespace-nowrap">No food listings nearby right now — be the first to donate! 🍱</div>
+           ) : (
+               [...tickerListings, ...tickerListings].map((listing, i) => (
+                   <Link to={`/feed`} key={`${listing._id}-${i}`} className="shrink-0 w-[200px] bg-white/10 hover:bg-white/20 transition rounded-xl p-3 flex flex-col justify-center h-[96px] mx-[6px] backdrop-blur-sm border border-white/10 text-white">
+                      <div className="flex items-center space-x-3">
+                         <div className="w-12 h-12 rounded-lg bg-black/20 flex items-center justify-center shrink-0 overflow-hidden">
+                            {listing.images && listing.images[0] ? (
+                                <img src={listing.images[0]} alt="Food" className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-2xl">
+                                  {listing.foodType === 'cooked' ? '🍱' : 
+                                   listing.foodType === 'raw' ? '🥗' : 
+                                   listing.foodType === 'packaged' ? '📦' : 
+                                   listing.foodType === 'bakery' ? '🥖' : 
+                                   listing.foodType === 'produce' ? '🥦' : 
+                                   listing.foodType === 'dairy' ? '🥛' : '🍽️'}
+                                </span>
+                            )}
+                         </div>
+                         <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-sm truncate">{listing.title}</span>
+                            <span className="text-green-400 text-xs font-medium">Anytime</span>
+                            <span className="text-gray-300 text-[10px] truncate">{listing.locationName || 'Nearby'}</span>
+                         </div>
+                      </div>
+                   </Link>
+               ))
+           )}
+        </div>
+      </div>
       
       {/* 1. Header Area */}
       <div className="w-full max-w-5xl flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 space-y-4 sm:space-y-0">

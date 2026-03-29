@@ -5,6 +5,7 @@ import SafetyBadge from '../components/SafetyBadge';
 import StarRating from '../components/StarRating';
 import Navbar from '../components/Navbar';
 import ConfirmationDialog from '../components/ConfirmationDialog';
+import api from '../utils/api';
 
 class ErrorBoundary extends React.Component {
   state = { error: null };
