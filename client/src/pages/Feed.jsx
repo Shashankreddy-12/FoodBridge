@@ -6,6 +6,7 @@ import SafetyBadge from '../components/SafetyBadge';
 import api from '../utils/api';
 import { useNotificationStore } from '../store/notifications';
 import { useAuthStore } from '../store/store';
+import Navbar from '../components/Navbar';
 
 export default function Feed() {
     const [userLocation, setUserLocation] = useState(null);
@@ -17,6 +18,9 @@ export default function Feed() {
     
     const [foodTypeFilter, setFoodTypeFilter] = useState('All');
     const [urgencyFilter, setUrgencyFilter] = useState('All');
+    
+    const [sortFilter, setSortFilter] = useState('expiry');
+    const [radiusFilter, setRadiusFilter] = useState(10);
     
     const [selectedListing, setSelectedListing] = useState(null);
     const [claimingId, setClaimingId] = useState(null);
@@ -60,7 +64,7 @@ export default function Feed() {
         setApiError(null);
 
         try {
-            const res = await api.get(`/api/listings?lat=${userLocation.lat}&lng=${userLocation.lng}`);
+            const res = await api.get(`/api/listings?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=${radiusFilter * 1000}`);
             setListings(res.data);
         } catch (err) {
             console.error(err);
@@ -78,7 +82,7 @@ export default function Feed() {
     // When Location Arrives
     useEffect(() => {
         if (userLocation) fetchListings();
-    }, [userLocation]);
+    }, [userLocation, radiusFilter]);
 
     // Handle incoming real-time socket events
     useEffect(() => {
@@ -163,14 +167,31 @@ export default function Feed() {
 
 
     // Filters
-    const filteredListings = listings.filter(l => {
-        if (foodTypeFilter !== 'All' && l.foodType !== foodTypeFilter) return false;
-        if (urgencyFilter === 'Urgent only' && !l.urgent) return false;
-        return true;
-    });
+    const filteredListings = listings
+        .filter(l => {
+            if (urgencyFilter === 'Urgent only') {
+                const minsLeft = (new Date(l.expiresAt) - Date.now()) / 60000;
+                return l.urgent === true || minsLeft <= 120;
+            }
+            return true;
+        })
+        .filter(l => foodTypeFilter === 'All' || l.foodType === foodTypeFilter)
+        .sort((a, b) => {
+            if (sortFilter === 'distance') {
+                if (!userLocation) return 0;
+                const dA = Math.pow(a.location.coordinates[1] - userLocation.lat, 2) + Math.pow(a.location.coordinates[0] - userLocation.lng, 2);
+                const dB = Math.pow(b.location.coordinates[1] - userLocation.lat, 2) + Math.pow(b.location.coordinates[0] - userLocation.lng, 2);
+                return dA - dB;
+            }
+            if (sortFilter === 'safety') {
+                return (b.safetyScore || 0) - (a.safetyScore || 0);
+            }
+            return new Date(a.expiresAt) - new Date(b.expiresAt);
+        });
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50 overflow-hidden relative">
+        <div className="flex flex-col h-screen bg-gray-50 overflow-hidden relative pt-16">
+            <Navbar />
             
             {/* Native Toast overlay */}
             {toast && (
@@ -181,7 +202,29 @@ export default function Feed() {
 
             {/* Header / Nav area placeholder (if standalone, otherwise wrapped in App Nav) */}
             <div className="bg-white border-b px-6 py-4 flex flex-col md:flex-row justify-between items-center shadow-sm shrink-0">
-                <h1 className="text-2xl font-bold tracking-tight text-green-700">Live Food Feed</h1>
+                <div className="flex flex-col">
+                    <h1 className="text-2xl font-bold tracking-tight text-green-700">Live Food Feed</h1>
+                    <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                        <label className="flex items-center space-x-1 font-medium">
+                            <span className="text-gray-400 font-bold">📍 Radius:</span>
+                            <select value={radiusFilter} onChange={e => setRadiusFilter(Number(e.target.value))} className="bg-transparent font-bold focus:outline-none cursor-pointer">
+                                <option value={2}>2km</option>
+                                <option value={5}>5km</option>
+                                <option value={10}>10km</option>
+                                <option value={20}>20km</option>
+                            </select>
+                        </label>
+                        <span className="text-gray-300">|</span>
+                        <label className="flex items-center space-x-1 font-medium">
+                            <span className="text-gray-400 font-bold">Sort:</span>
+                            <select value={sortFilter} onChange={e => setSortFilter(e.target.value)} className="bg-transparent font-bold focus:outline-none cursor-pointer">
+                                <option value="expiry">Expiry ▲</option>
+                                <option value="distance">Distance</option>
+                                <option value="safety">Safety Score</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
                 
                 <div className="flex space-x-3 mt-4 md:mt-0">
                     <select 

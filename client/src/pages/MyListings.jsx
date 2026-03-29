@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
 import { useAuthStore } from '../store/store';
 import SafetyBadge from '../components/SafetyBadge';
 import StarRating from '../components/StarRating';
+import Navbar from '../components/Navbar';
+import ConfirmationDialog from '../components/ConfirmationDialog';
+
+class ErrorBoundary extends React.Component {
+  state = { error: null };
+  componentDidCatch(err) { this.setState({ error: err.message }); }
+  render() {
+    if (this.state.error) return (
+      <div className="p-8 text-red-500">
+        Error: {this.state.error} — please refresh
+      </div>
+    );
+    return this.props.children;
+  }
+}
 
 function StatusBadge({ status, urgent }) {
   if (urgent && status === 'available') {
@@ -68,6 +82,10 @@ export default function MyListings() {
   const [data, setData] = useState({ donated: [], claimed: [], volunteer: [] });
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+
+  const [activeTab, setActiveTab] = useState('donated');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [claimToCancel, setClaimToCancel] = useState(null);
   
   const token = useAuthStore(s => s.token);
   const user = useAuthStore(s => s.user);
@@ -84,6 +102,9 @@ export default function MyListings() {
     })
     .then(res => {
         setData(res.data);
+        if (res.data.donated.length > 0) setActiveTab('donated');
+        else if (res.data.claimed.length > 0) setActiveTab('claimed');
+        else if (res.data.volunteer.length > 0) setActiveTab('volunteer');
     })
     .catch(err => {
         console.error(err);
@@ -91,25 +112,34 @@ export default function MyListings() {
     .finally(() => setLoading(false));
   }, [token, navigate]);
 
-  const isEmpty =
-    data.donated.length === 0 &&
-    data.claimed.length === 0 &&
-    data.volunteer.length === 0;
-
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const cancelClaim = async (id) => {
+  const donated = Array.isArray(data?.donated) ? data.donated : [];
+  const claimed = Array.isArray(data?.claimed) ? data.claimed : [];
+  const volunteer = Array.isArray(data?.volunteer) ? data.volunteer : [];
+
+  const isEmptyState =
+    donated.length === 0 &&
+    claimed.length === 0 &&
+    volunteer.length === 0;
+
+  const confirmCancel = (id) => {
+    setClaimToCancel(id);
+    setDialogOpen(true);
+  };
+
+  const executeCancelClaim = async () => {
+    if (!claimToCancel) return;
     try {
-      await api.delete(`/api/listings/${id}/claim`, {
+      await api.delete(`/api/listings/${claimToCancel}/claim`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      // Remove specifically from the claimed array locally
       setData(prev => ({
           ...prev,
-          claimed: prev.claimed.filter(l => l._id !== id)
+          claimed: prev.claimed.filter(l => l._id !== claimToCancel)
       }));
       showToast('Claim cancelled successfully');
     } catch (err) {
@@ -118,13 +148,20 @@ export default function MyListings() {
       } else {
         showToast(err.response?.data?.error || 'Failed to cancel claim', 'error');
       }
+    } finally {
+      setDialogOpen(false);
+      setClaimToCancel(null);
     }
   };
 
   if (!user) return null;
+  if (!data) return <div className="p-8 text-center font-bold text-gray-500">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-10 px-4 relative">
+    <ErrorBoundary>
+    <>
+    <Navbar />
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-10 px-4 relative pt-24 md:pt-28">
       {toast && (
         <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded shadow-lg z-[9999] text-white font-medium ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
           {toast.msg}
@@ -141,41 +178,50 @@ export default function MyListings() {
 
       <div className="w-full max-w-3xl">
         {loading ? (
-          <div className="space-y-4 shadow-sm border border-gray-100 bg-white p-6 rounded-lg">
-             <div className="animate-pulse bg-gray-200 h-5 w-1/4 rounded mb-4"></div>
-             <div className="animate-pulse bg-gray-200 h-4 w-1/3 rounded"></div>
+          <div className="space-y-4 w-full">
+             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm animate-pulse h-32"></div>
+             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm animate-pulse h-32"></div>
+             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm animate-pulse h-32"></div>
           </div>
-        ) : isEmpty ? (
+        ) : isEmptyState ? (
           <div className="text-center py-16 bg-white rounded-lg border border-gray-200 shadow-sm mt-4">
             <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
             <p className="text-lg text-gray-500 font-medium">Nothing here yet</p>
             <p className="text-sm text-gray-400 mt-1">Check back later when you have activity.</p>
           </div>
         ) : (
-          <div className="space-y-8">
-            {data.donated.length > 0 && (
-                <section>
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Food I Posted</h2>
-                    {data.donated.map(l => <SearchItemCard key={l._id} l={l} user={user} cancelClaim={cancelClaim} ratingMode="rate-recipient" />)}
-                </section>
-            )}
-
-            {data.claimed.length > 0 && (
-                <section>
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Food I Claimed</h2>
-                    {data.claimed.map(l => <SearchItemCard key={l._id} l={l} user={user} cancelClaim={cancelClaim} ratingMode="rate-donor" />)}
-                </section>
-            )}
-
-            {data.volunteer.length > 0 && (
-                <section>
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Pickups I'm Handling</h2>
-                    {data.volunteer.map(l => <SearchItemCard key={l._id} l={l} user={user} cancelClaim={cancelClaim} />)}
-                </section>
-            )}
+          <div className="space-y-6">
+            <div className="flex border-b border-gray-200 hide-scrollbar overflow-x-auto">
+               <button onClick={() => setActiveTab('donated')} className={`pb-3 px-4 font-bold text-sm transition-colors whitespace-nowrap outline-none ${activeTab === 'donated' ? 'border-b-2 border-green-600 text-green-700' : 'text-gray-500 hover:text-gray-700'}`}>🍱 Donated ({donated.length})</button>
+               <button onClick={() => setActiveTab('claimed')} className={`pb-3 px-4 font-bold text-sm transition-colors whitespace-nowrap outline-none ${activeTab === 'claimed' ? 'border-b-2 border-blue-600 text-blue-700' : 'text-gray-500 hover:text-gray-700'}`}>🙏 Claimed ({claimed.length})</button>
+               <button onClick={() => setActiveTab('volunteer')} className={`pb-3 px-4 font-bold text-sm transition-colors whitespace-nowrap outline-none ${activeTab === 'volunteer' ? 'border-b-2 border-orange-600 text-orange-700' : 'text-gray-500 hover:text-gray-700'}`}>🚴 Deliveries ({volunteer.length})</button>
+            </div>
+            
+            <div className="space-y-4">
+               {activeTab === 'donated' && donated.length === 0 && <p className="text-gray-500 text-sm mt-4 italic text-center w-full py-6">No donations yet.</p>}
+               {activeTab === 'donated' && donated.map(l => <SearchItemCard key={l._id} l={l} user={user} cancelClaim={confirmCancel} ratingMode="rate-recipient" />)}
+               
+               {activeTab === 'claimed' && claimed.length === 0 && <p className="text-gray-500 text-sm mt-4 italic text-center w-full py-6">No claims yet.</p>}
+               {activeTab === 'claimed' && claimed.map(l => <SearchItemCard key={l._id} l={l} user={user} cancelClaim={confirmCancel} ratingMode="rate-donor" />)}
+               
+               {activeTab === 'volunteer' && volunteer.length === 0 && <p className="text-gray-500 text-sm mt-4 italic text-center w-full py-6">No deliveries yet.</p>}
+               {activeTab === 'volunteer' && volunteer.map(l => <SearchItemCard key={l._id} l={l} user={user} cancelClaim={confirmCancel} />)}
+            </div>
           </div>
         )}
       </div>
+
+      <ConfirmationDialog 
+        isOpen={dialogOpen}
+        title="Cancel Claim"
+        message="Cancel this claim? The food will become available for others."
+        confirmText="Yes, Cancel Claim"
+        cancelText="Keep Claim"
+        onConfirm={executeCancelClaim}
+        onCancel={() => setDialogOpen(false)}
+      />
     </div>
+    </>
+    </ErrorBoundary>
   );
 }

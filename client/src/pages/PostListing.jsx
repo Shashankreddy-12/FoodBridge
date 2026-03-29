@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuthStore } from '../store/store';
 import SafetyBadge from '../components/SafetyBadge';
+import Navbar from '../components/Navbar';
 
 export default function PostListing() {
     const [formData, setFormData] = useState({
@@ -20,6 +21,8 @@ export default function PostListing() {
     
     const [safetyPrecheck, setSafetyPrecheck] = useState(null);
     const [checkingSafety, setCheckingSafety] = useState(false);
+
+    const [autoFilled, setAutoFilled] = useState(false);
     
     const navigate = useNavigate();
     const token = useAuthStore(s => s.token);
@@ -29,9 +32,22 @@ export default function PostListing() {
     useEffect(() => {
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                async (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    setLocation({ lat, lng });
                     setLocStatus('Location captured ✓');
+                    
+                    try {
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lng=${lng}&format=json`);
+                        const data = await response.json();
+                        if (data.display_name) {
+                            setFormData(prev => ({ ...prev, address: data.display_name }));
+                            setAutoFilled(true);
+                        }
+                    } catch (err) {
+                        console.error("Geocoding failed", err);
+                    }
                 },
                 (err) => setLocStatus('Location access denied or failed ✗')
             );
@@ -98,8 +114,10 @@ export default function PostListing() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-50 py-12 px-4">
-            <div className="w-full max-w-xl p-8 bg-white rounded shadow-md">
+        <>
+            <Navbar />
+            <div className="flex items-center justify-center min-h-screen bg-gray-50 py-12 px-4 pt-24">
+                <div className="w-full max-w-xl p-8 bg-white rounded shadow-md">
                 <h2 className="text-3xl font-bold text-center text-green-600 mb-6">Post Food Listing</h2>
                 {error && <p className="mb-4 text-sm text-red-500 text-center">{error}</p>}
                 
@@ -135,7 +153,8 @@ export default function PostListing() {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Address <span className="text-red-500">*</span></label>
-                        <input type="text" name="address" placeholder="Physical street address..." className="w-full px-3 py-2 mt-1 border rounded focus:ring-green-500 text-sm" onChange={handleChange} required />
+                        <input type="text" name="address" placeholder="Physical street address..." className="w-full px-3 py-2 mt-1 border rounded focus:ring-green-500 text-sm" onChange={handleChange} value={formData.address} required />
+                        {autoFilled && <p className="text-xs text-green-600 mt-1 font-semibold">📍 Address auto-filled from GPS. You can edit it.</p>}
                     </div>
 
                     <div className="flex space-x-2">
@@ -183,5 +202,6 @@ export default function PostListing() {
                 </form>
             </div>
         </div>
+        </>
     );
 }

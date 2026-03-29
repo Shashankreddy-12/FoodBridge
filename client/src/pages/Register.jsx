@@ -9,6 +9,7 @@ export default function Register() {
   });
   const [location, setLocation] = useState({ lat: null, lng: null });
   const [error, setError] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
   
   // Validation States
   const [fieldErrors, setFieldErrors] = useState({});
@@ -109,7 +110,17 @@ export default function Register() {
                 <label>PASSWORD</label> 
                 {touched.password && !fieldErrors.password && <span className="text-green-500 font-bold">✓</span>}
             </div>
-            <input type="password" name="password" className={getFieldClass('password')} onChange={handleChange} required />
+            <div className="relative">
+                <input type={showPwd ? "text" : "password"} name="password" className={getFieldClass('password') + " pr-10"} onChange={handleChange} required />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPwd(!showPwd)} 
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 mt-1 text-gray-400 hover:text-green-600 focus:outline-none"
+                  tabIndex="-1"
+                >
+                  {showPwd ? '🙈' : '👁️'}
+                </button>
+            </div>
             {touched.password && fieldErrors.password && <p className="text-xs text-red-500 mt-1 font-semibold">{fieldErrors.password}</p>}
             {touched.password && !fieldErrors.password && (
                  <p className={`text-xs mt-1 font-bold ${getPasswordStrength(formData.password).color}`}>

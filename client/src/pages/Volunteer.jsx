@@ -8,6 +8,7 @@ import { useSocket } from '../hooks/useSocket';
 import SafetyBadge from '../components/SafetyBadge';
 import StarRating from '../components/StarRating';
 import { io } from 'socket.io-client';
+import Navbar from '../components/Navbar';
 
 const volunteerIcon = new L.divIcon({ 
     className: 'volunteer-icon', 
@@ -177,7 +178,8 @@ export default function Volunteer() {
         : [];
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col pt-8 md:pt-16 pb-12 px-4 sm:px-6 relative">
+        <div className="min-h-screen bg-gray-50 flex flex-col pt-24 md:pt-24 pb-12 px-4 sm:px-6 relative">
+            <Navbar />
             {toast && (
                 <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-xl shadow-2xl z-[99999] font-medium text-sm">
                     {toast}
