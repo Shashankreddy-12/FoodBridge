@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Lenis from '@studio-freight/lenis';
-import Footer from '../components/Footer';
+import { useAuthStore } from '../store/store';
 
 // A simple hook to animate numbers scrolling up
 function useCountUp(target, startCount, duration = 2000) {
@@ -28,6 +28,7 @@ function useCountUp(target, startCount, duration = 2000) {
 
 export default function Home() {
   const navigate = useNavigate();
+  const logout = useAuthStore(s => s.logout);
   
   // Navbar Scrolled State
   const [isScrolled, setIsScrolled] = useState(false);
@@ -47,6 +48,9 @@ export default function Home() {
   const [visibleSections, setVisibleSections] = useState({});
 
   useEffect(() => {
+    // 0. Explicitly clear previous session so clicking buttons asks to login
+    logout();
+
     // 1. Initialize Lenis Smooth Scroll
     const lenis = new Lenis({
       duration: 1.2,
@@ -132,14 +136,13 @@ export default function Home() {
             <span className="text-xl font-bold text-[#16a34a]">🌱 FoodBridge</span>
           </div>
 
-          {/* Desktop Nav */}
           <div className={`hidden md:flex space-x-8 font-medium text-sm transition-colors ${
              isScrolled ? 'text-gray-600' : 'text-gray-800'
           }`}>
             <a href="#" className="hover:text-[#16a34a] transition">Home</a>
             <a href="#how-it-works" className="hover:text-[#16a34a] transition">How It Works</a>
             <a href="#impact-section" className="hover:text-[#16a34a] transition">Impact</a>
-            <a href="#about" className="hover:text-[#16a34a] transition">About</a>
+            <button onClick={() => navigate('/feed')} className="hover:text-[#16a34a] transition">Browse Food</button>
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
@@ -174,8 +177,9 @@ export default function Home() {
             <a href="#" onClick={()=>setMobileMenuOpen(false)}>Home</a>
             <a href="#how-it-works" onClick={()=>setMobileMenuOpen(false)}>How It Works</a>
             <a href="#impact-section" onClick={()=>setMobileMenuOpen(false)}>Impact</a>
-            <button onClick={() => navigate('/login')} className="text-left font-bold text-gray-800">Log In</button>
-            <button onClick={() => navigate('/register')} className="bg-[#16a34a] text-white text-center rounded-full py-3 font-bold">Get Started →</button>
+            <button onClick={() => { setMobileMenuOpen(false); navigate('/feed'); }} className="text-left">Browse Food</button>
+            <button onClick={() => { setMobileMenuOpen(false); navigate('/login'); }} className="text-left font-bold text-gray-800">Log In</button>
+            <button onClick={() => { setMobileMenuOpen(false); navigate('/register'); }} className="bg-[#16a34a] text-white text-center rounded-full py-3 font-bold">Get Started →</button>
         </div>
       )}
 
@@ -199,7 +203,7 @@ export default function Home() {
             </h1>
             
             <p className="text-xl text-gray-600 mt-6 max-w-lg leading-relaxed">
-              FoodBridge connects surplus food donors with people who need it — in real-time, with AI-powered matching and live delivery tracking.
+              FoodBridge connects surplus food donors with people who need it — in real-time, with smart matching and live delivery tracking.
             </p>
             
             <div className="mt-10 flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
@@ -231,62 +235,61 @@ export default function Home() {
               className="absolute top-16 right-4 w-[280px] bg-white rounded-2xl p-5 shadow-sm border border-gray-100 will-change-transform"
               style={{ '--r': '-5deg', transform: 'rotate(-5deg) scale(0.9) translateX(30px) translateY(20px)', zIndex: 10, animation: 'float 3.4s ease-in-out infinite' }}
             >
-              <div className="flex justify-between items-start mb-3">
-                 <span className="text-3xl">🥖</span>
-                 <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-full">30 pieces</span>
+              <div className="h-20 bg-yellow-100 rounded-xl mb-3 flex items-center justify-center text-3xl">🥖</div>
+              <h3 className="font-bold text-gray-800 mb-1 leading-tight">Sourdough Bread — 30 loaves</h3>
+              <p className="text-[10px] text-gray-400 font-medium mb-3">by Priya Restaurant</p>
+              
+              <div className="flex items-center gap-2 mb-2">
+                 <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full uppercase">Safe 98/100</span>
+                 <span className="text-[10px] font-bold text-gray-500">1.2 km away</span>
               </div>
-              <h3 className="font-bold text-gray-800 mb-2">Bread Loaves</h3>
               <div className="text-xs text-amber-500 font-bold mb-1">Expires in 12h</div>
             </div>
 
             {/* Card 2 (Middle) */}
             <div 
-              className="absolute top-10 right-10 w-[300px] bg-white rounded-2xl p-5 shadow-lg border border-gray-100 will-change-transform"
+              className="absolute top-10 right-10 w-[280px] bg-white rounded-2xl p-5 shadow-lg border border-gray-100 will-change-transform"
               style={{ '--r': '3deg', transform: 'rotate(3deg) scale(0.95) translateX(15px) translateY(10px)', zIndex: 20, animation: 'float 3.2s ease-in-out infinite' }}
             >
-              <div className="flex justify-between items-start mb-3">
-                 <span className="text-4xl">🥗</span>
-                 <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded-full">15 portions</span>
+              <div className="h-20 bg-green-100 rounded-xl mb-3 flex items-center justify-center text-3xl">🥗</div>
+              <h3 className="text-lg font-bold text-gray-800 mb-1 leading-tight">Garden Fresh Salad — 15 portions</h3>
+              <p className="text-[10px] text-gray-400 font-medium mb-3">by Priya Restaurant</p>
+
+              <div className="flex items-center gap-2 mb-2">
+                 <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full uppercase">Safe 95/100</span>
+                 <span className="text-[10px] font-bold text-gray-500">800m away</span>
               </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">Fresh Salad</h3>
-              <div className="flex gap-2">
-                 <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full uppercase">Safe 98/100</span>
-                 <span className="text-[10px] font-bold text-gray-500">1.2 km away</span>
-              </div>
+              <div className="text-xs text-amber-500 font-bold mb-1">Expires in 4h</div>
             </div>
 
             {/* Card 1 (Front) */}
             <div 
-              className="absolute top-4 left-4 w-[320px] bg-white rounded-2xl p-6 shadow-2xl border border-gray-50 will-change-transform"
+              className="absolute top-4 left-4 w-[280px] bg-white rounded-2xl p-5 shadow-2xl border border-gray-50 will-change-transform"
               style={{ '--r': '0deg', zIndex: 30, animation: 'float 3s ease-in-out infinite' }}
             >
-              <div className="flex justify-between items-start mb-4">
-                 <div className="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center text-3xl">🍱</div>
-                 <span className="text-xs font-black text-[#16a34a] bg-[#16a34a]/10 px-2.5 py-1.5 rounded-full">20 portions</span>
-              </div>
-              <h3 className="text-xl font-black text-gray-900 mb-1">Chicken Biryani</h3>
-              <p className="text-sm font-medium text-amber-500 mb-4">Expires in 2h 30m</p>
+              <div className="h-20 bg-orange-100 rounded-xl mb-3 flex items-center justify-center text-3xl">🍱</div>
+              <h3 className="text-xl font-black text-gray-900 mb-1 leading-tight">Chicken Biryani — 20 portions</h3>
+              <p className="text-[10px] text-gray-400 font-medium mb-3">by Priya Restaurant</p>
               
-              <div className="flex items-center gap-3">
-                 <span className="text-xs font-bold text-[#14532d] bg-[#dcfce7] px-3 py-1.5 rounded-full border border-[#16a34a]/20">✓ Safe 92/100</span>
-                 <span className="text-xs font-bold text-gray-500">📍 2.3 km away</span>
+              <div className="flex items-center gap-2 mb-3">
+                 <span className="text-[10px] font-bold text-[#14532d] bg-[#dcfce7] px-2 py-0.5 rounded-full border border-[#16a34a]/20">✓ Safe 92/100</span>
+                 <span className="text-[10px] font-bold text-gray-500">📍 2.3 km away</span>
               </div>
+              <p className="text-xs font-bold text-amber-500">Expires in 2h 30m</p>
             </div>
 
             {/* Notification Popup */}
-            <div className="absolute top-[-20px] right-[-20px] bg-white shadow-xl rounded-xl p-4 w-56 z-50 border border-green-100 slide-in delay-1s flex items-center gap-3">
-               <div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-xl">🔔</div>
-               <div>
-                  <div className="text-xs font-black text-gray-800">New listing nearby!</div>
-                  <div className="text-[11px] font-medium text-gray-500 mt-0.5">Upma — 500m away</div>
+            <div className="absolute top-[-20px] right-[-30px] z-50 slide-in delay-1-5s">
+               <div className="bg-white shadow-xl rounded-2xl p-4 w-56 border border-green-100 flex items-center gap-3 will-change-transform" style={{ animation: 'float 4s ease-in-out infinite', animationDelay: '0.2s' }}>
+                  <div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-xl">🔔</div>
+                  <div>
+                     <div className="text-xs font-black text-gray-800">New listing nearby!</div>
+                     <div className="text-[11px] font-medium text-gray-800 mt-0.5 leading-tight">Chicken Biryani — 500m away</div>
+                     <div className="text-[10px] font-medium text-gray-400 mt-0.5">Posted 2 mins ago</div>
+                  </div>
                </div>
             </div>
 
-            {/* Map Snippet */}
-            <div className="absolute bottom-16 left-[-30px] w-24 h-24 bg-[#dcfce7] rounded-2xl shadow-lg z-40 border border-white flex flex-col items-center justify-center slide-in delay-1-5s hover:scale-105 transition-transform cursor-pointer">
-                <span className="text-2xl mb-1">📍</span>
-                <span className="text-[10px] font-black text-[#14532d] uppercase tracking-wider">Live Map</span>
-            </div>
           </div>
         </div>
       </section>
@@ -348,14 +351,14 @@ export default function Home() {
                   <div className="text-7xl font-black text-[#dcfce7] absolute top-6 right-6 select-none -z-10 tracking-tighter">01</div>
                   <div className="text-5xl mb-6 shadow-sm bg-white rounded-2xl w-16 h-16 flex items-center justify-center border border-gray-50">📸</div>
                   <h3 className="text-xl font-extrabold text-gray-900 mb-3">Post Your Surplus</h3>
-                  <p className="text-gray-500 font-medium leading-relaxed">Take a photo, describe the food, set expiry time. Our AI instantly scores its safety.</p>
+                  <p className="text-gray-500 font-medium leading-relaxed">Take a photo, describe the food, set expiry time. Our system instantly scores its safety.</p>
                </div>
 
                {/* Step 2 */}
                <div className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 relative z-10 flex flex-col items-start min-h-[300px]" style={{ borderTopWidth: '4px', borderTopColor: '#f59e0b' }}>
                   <div className="text-7xl font-black text-[#fef3c7] absolute top-6 right-6 select-none -z-10 tracking-tighter">02</div>
                   <div className="text-5xl mb-6 shadow-sm bg-white rounded-2xl w-16 h-16 flex items-center justify-center border border-gray-50">🤖</div>
-                  <h3 className="text-xl font-extrabold text-gray-900 mb-3">AI Matches Recipients</h3>
+                  <h3 className="text-xl font-extrabold text-gray-900 mb-3">Smart Matching</h3>
                   <p className="text-gray-500 font-medium leading-relaxed">Our matching engine finds the best nearby recipients based on dietary needs and location.</p>
                </div>
 
@@ -386,9 +389,8 @@ export default function Home() {
              <div className="order-1 md:order-2">
                 <span className="text-[#16a34a] font-extrabold tracking-widest text-xs uppercase mb-3 block">Real-Time Discovery</span>
                 <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-5 leading-tight">See surplus food appear on the map — live</h3>
-                <p className="text-gray-500 font-medium text-lg leading-relaxed mb-6">The moment a donor posts food, a pin appears on the live map. Recipients within 10km get instant notifications. No refreshing needed.</p>
+                <p className="text-gray-500 font-medium text-lg leading-relaxed mb-6">The moment someone donates food nearby, you'll see it appear on the map and get an instant notification — no refreshing, no delays.</p>
                 <div className="flex flex-wrap gap-2">
-                   <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Socket.io</span>
                    <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Live Map</span>
                    <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Push Alerts</span>
                 </div>
@@ -400,12 +402,7 @@ export default function Home() {
              <div>
                 <span className="text-[#f59e0b] font-extrabold tracking-widest text-xs uppercase mb-3 block">AI Safety Scoring</span>
                 <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-5 leading-tight">Every listing is safety-checked by AI</h3>
-                <p className="text-gray-500 font-medium text-lg leading-relaxed mb-6">Our Gemini-powered NLP scorer analyzes the food description and assigns a safety score. Unsafe food never reaches the feed.</p>
-                <div className="flex flex-wrap gap-2">
-                   <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Gemini AI</span>
-                   <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">NLP Scoring</span>
-                   <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Auto-block</span>
-                </div>
+                <p className="text-gray-500 font-medium text-lg leading-relaxed mb-6">Every food listing is automatically checked for safety before it goes live. You'll always see a clear safety rating so you know exactly what you're claiming.</p>
              </div>
              <div className="relative h-64 md:h-96 w-full flex items-center justify-center">
                 <div className="absolute inset-0 bg-[#fef3c7]/50 rounded-[3rem] transform rotate-3 transition-transform hover:rotate-0 duration-500"></div>
@@ -430,12 +427,8 @@ export default function Home() {
              </div>
              <div className="order-1 md:order-2">
                 <span className="text-blue-500 font-extrabold tracking-widest text-xs uppercase mb-3 block">Smart Routing</span>
-                <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-5 leading-tight">Volunteers get AI-optimized routes</h3>
-                <p className="text-gray-500 font-medium text-lg leading-relaxed mb-6">Our TSP route optimizer calculates the most efficient path for volunteers to collect and deliver multiple food items in a single trip.</p>
-                <div className="flex flex-wrap gap-2">
-                   <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">TSP Algorithm</span>
-                   <span className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">Live Tracking</span>
-                </div>
+                <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-5 leading-tight">Volunteers get optimized routes</h3>
+                <p className="text-gray-500 font-medium text-lg leading-relaxed mb-6">Volunteers get a smart route on their phone showing the fastest way to pick up and deliver food. Less time driving, more food delivered.</p>
              </div>
           </div>
 
@@ -504,9 +497,6 @@ export default function Home() {
          </div>
       </section>
 
-      {/* SECTION 8 — Footer */}
-      <Footer />
-      
     </div>
   );
 }
