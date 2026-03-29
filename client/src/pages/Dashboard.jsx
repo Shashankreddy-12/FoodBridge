@@ -5,6 +5,39 @@ import { useSocket } from '../hooks/useSocket';
 import NotificationBell from '../components/NotificationBell';
 import ProfilePanel from '../components/ProfilePanel';
 import api from '../utils/api';
+import { useNotificationStore } from '../store/notifications';
+import { Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+function useCountUp(target, duration = 2000) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!target) return;
+    let start = 0;
+    const increment = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= target) {
+        setCount(target);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(start));
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [target, duration]);
+  return count;
+}
 
 export default function Dashboard() {
   const user = useAuthStore(s => s.user);
@@ -15,7 +48,28 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
   
+  const [forecast, setForecast] = useState([]);
+  const [peakHours, setPeakHours] = useState([]);
+  const [forecastLoading, setForecastLoading] = useState(true);
+  const [forecastError, setForecastError] = useState(null);
+  
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // Global Impact States tracking Socket responses dynamically
+  const impactStats = useNotificationStore(s => s.impactStats);
+  const setImpactStats = useNotificationStore(s => s.setImpactStats);
+
+  useEffect(() => {
+     api.get('/api/impact')
+        .then(res => setImpactStats(res.data))
+        .catch(() => {});
+  }, [setImpactStats]);
+
+  const resolvedImpact = impactStats || { totalMealsSaved: 0, totalKgFoodSaved: 0, totalCO2Saved: 0, totalDeliveries: 0 };
+  const countMeals = useCountUp(resolvedImpact.totalMealsSaved);
+  const countFood = useCountUp(resolvedImpact.totalKgFoodSaved);
+  const countCO2 = useCountUp(resolvedImpact.totalCO2Saved);
+  const countDeliveries = useCountUp(resolvedImpact.totalDeliveries);
 
   // Live real-time connection
   useSocket(token);
@@ -40,6 +94,19 @@ export default function Dashboard() {
       setStats(null);
     })
     .finally(() => setLoadingStats(false));
+
+    api.get('/api/analytics/surplus-prediction', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => {
+      setForecast(res.data.forecast || []);
+      setPeakHours(res.data.peakHours || []);
+    })
+    .catch(err => {
+      setForecastError(err.message);
+    })
+    .finally(() => setForecastLoading(false));
+
   }, [token, navigate]);
 
   const handleLogout = () => {
@@ -67,8 +134,8 @@ export default function Dashboard() {
             <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
               {user.name} 👋
             </h1>
-            <p className="mt-1 text-sm md:text-base text-gray-500 font-medium tracking-wide flex items-center uppercase text-[10px] tracking-wider">
-              {user.role} Dashboard
+            <p className="mt-1 text-sm md:text-base text-gray-500 font-medium tracking-wide">
+              What would you like to do today?
             </p>
           </div>
         </div>
@@ -165,6 +232,83 @@ export default function Dashboard() {
                  </div>
              )
          ) : null}
+      </div>
+
+      {/* Impact Stats Area */}
+      <div className="w-full max-w-5xl mt-12 mb-2">
+         <h3 className="text-xl font-bold text-gray-800 mb-6 px-1 text-center">Our Impact So Far 🌍</h3>
+         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+               <div className="text-3xl lg:text-4xl font-black text-green-600 mb-1">{countMeals}</div>
+               <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Meals Saved 🍽️</div>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+               <div className="text-3xl lg:text-4xl font-black text-teal-600 mb-1">{(countFood || 0).toFixed(1)}</div>
+               <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide">kg Food Rescued 📦</div>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+               <div className="text-3xl lg:text-4xl font-black text-emerald-600 mb-1">{(countCO2 || 0).toFixed(1)}</div>
+               <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide">kg CO₂ Prevented 🌱</div>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+               <div className="text-3xl lg:text-4xl font-black text-blue-600 mb-1">{countDeliveries}</div>
+               <div className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Deliveries ✅</div>
+            </div>
+         </div>
+      </div>
+
+      {/* Surplus Forecast Row */}
+      <div className="w-full max-w-5xl mt-12 mb-10">
+         <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">Surplus Forecast</h3>
+         
+         <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100">
+           {forecastLoading ? (
+             <div className="flex justify-center items-center h-48 text-gray-500 font-medium">
+                Loading forecast...
+             </div>
+           ) : forecastError ? (
+             <div className="flex justify-center items-center h-48 text-red-500 font-medium bg-red-50 rounded-xl">
+                 Forecast unavailable
+             </div>
+           ) : (
+             <>
+                 <div className="w-full overflow-x-auto">
+                     <div className="min-w-[500px] h-[300px]">
+                         <Bar 
+                             data={{
+                                 labels: forecast.map(f => f.label),
+                                 datasets: [{
+                                     label: 'Predicted listings',
+                                     data: forecast.map(f => f.predicted),
+                                     backgroundColor: forecast.map(f => f.isPeak ? '#F59E0B' : '#0D9488'),
+                                     borderRadius: 4
+                                 }]
+                             }}
+                             options={{
+                                 responsive: true,
+                                 maintainAspectRatio: false,
+                                 plugins: { legend: { display: false } },
+                                 scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                             }}
+                         />
+                     </div>
+                 </div>
+                 
+                 <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+                     <span className="text-sm font-bold text-gray-700 uppercase tracking-widest">Peak times today:</span>
+                     <div className="flex flex-wrap gap-2">
+                         {peakHours.length > 0 ? peakHours.map(hour => (
+                             <span key={hour} className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full shadow-sm">
+                                 {hour}
+                             </span>
+                         )) : (
+                             <span className="text-sm text-gray-500 italic">No peak activity expected</span>
+                         )}
+                     </div>
+                 </div>
+             </>
+           )}
+         </div>
       </div>
 
     </div>

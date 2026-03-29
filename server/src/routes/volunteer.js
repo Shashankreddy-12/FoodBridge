@@ -111,6 +111,20 @@ router.post('/complete/:listingId', verifyToken, async (req, res) => {
     if (io) {
         io.to(`user_${listing.donor}`).emit('delivery_complete', { listingId: listing._id });
         io.to(`user_${listing.claimedBy}`).emit('delivery_complete', { listingId: listing._id });
+        
+        try {
+            const updatedStats = await ImpactStats.findOne({});
+            if (updatedStats) {
+                 io.emit('impact_updated', {
+                   totalMealsSaved:  Math.round(updatedStats.totalMealsSaved  || 0),
+                   totalKgFoodSaved: parseFloat((updatedStats.totalKgFoodSaved || 0).toFixed(1)),
+                   totalCO2Saved:    parseFloat((updatedStats.totalCO2Saved    || 0).toFixed(1)),
+                   totalDeliveries:  Math.round(updatedStats.totalDeliveries   || 0),
+                 });
+            }
+        } catch (err) {
+            console.error('Impact IO Error:', err.message);
+        }
     }
 
     return res.json(listing);

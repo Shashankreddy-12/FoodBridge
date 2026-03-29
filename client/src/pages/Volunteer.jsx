@@ -6,6 +6,7 @@ import api from '../utils/api';
 import { useAuthStore } from '../store/store';
 import { useSocket } from '../hooks/useSocket';
 import SafetyBadge from '../components/SafetyBadge';
+import StarRating from '../components/StarRating';
 import { io } from 'socket.io-client';
 
 const volunteerIcon = new L.divIcon({ 
@@ -313,6 +314,13 @@ export default function Volunteer() {
                                             </span>
                                         </div>
                                         <p className="text-sm text-gray-500 font-medium">From {d.donor?.name || 'Unknown'} → To {d.claimedBy?.name || 'Unknown'}</p>
+                                        
+                                        {d.status === 'delivered' && (
+                                            <div className="mt-3 pt-3 border-t border-gray-100">
+                                                <p className="text-xs font-bold text-gray-700 uppercase tracking-widest">Rate the recipient</p>
+                                                <StarRating deliveryId={d._id} ratedUserId={d.claimedBy?._id || d.claimedBy} />
+                                            </div>
+                                        )}
                                     </div>
                                     
                                     {d.status === 'claimed' && (

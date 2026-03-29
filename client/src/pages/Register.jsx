@@ -9,6 +9,11 @@ export default function Register() {
   });
   const [location, setLocation] = useState({ lat: null, lng: null });
   const [error, setError] = useState('');
+  
+  // Validation States
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touched, setTouched] = useState({});
+
   const setAuth = useAuthStore(s => s.setAuth);
   const navigate = useNavigate();
 
@@ -21,14 +26,34 @@ export default function Register() {
     }
   }, []);
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const validate = () => {
+    const errors = {};
+    if (!formData.name || formData.name.trim().length < 2)
+      errors.name = 'Name must be at least 2 characters';
+    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+      errors.email = 'Please enter a valid email address';
+    if (!formData.password || formData.password.length < 8)
+      errors.password = 'Password must be at least 8 characters';
+    if (!formData.phone || !/^\d{10}$/.test(formData.phone))
+      errors.phone = 'Please enter a valid 10-digit phone number';
+    return errors;
+  };
+
+  useEffect(() => {
+    setFieldErrors(validate());
+  }, [formData]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setTouched({ ...touched, [e.target.name]: true });
+  };
+
+  const hasErrors = Object.keys(fieldErrors).length > 0;
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    if (!/^\d{10}$/.test(formData.phone)) {
-        setError('Please enter a valid 10-digit phone number');
-        return;
-    }
+    if (hasErrors) return;
+    
     setError('');
     try {
       const payload = { ...formData, ...location };
@@ -40,40 +65,78 @@ export default function Register() {
     }
   };
 
+  const getPasswordStrength = (pwd) => {
+    if (!pwd || pwd.length < 8) return { text: 'Too short', color: 'text-red-500' };
+    const hasSpecialAndNum = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd) && /\d/.test(pwd);
+    if (hasSpecialAndNum) return { text: 'Strong', color: 'text-green-600' };
+    return { text: 'Medium', color: 'text-amber-500' };
+  };
+
+  const getFieldClass = (name) => {
+    const base = "w-full px-3 py-2 mt-1 border rounded focus:ring-green-500 focus:outline-none transition-colors";
+    if (touched[name] && fieldErrors[name]) return `${base} border-red-400 bg-red-50`;
+    if (touched[name] && !fieldErrors[name]) return `${base} border-green-500 bg-green-50`;
+    return base;
+  };
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 py-12 px-4">
-      <div className="w-full max-w-md p-8 bg-white rounded shadow-md">
-        <h2 className="text-3xl font-bold text-center text-green-600 mb-6">Register</h2>
-        {error && <p className="mb-4 text-sm text-red-500 text-center">{error}</p>}
-        <form onSubmit={handleRegister} className="space-y-4">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 py-12 px-4 shadow-sm">
+      <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg border border-gray-100">
+        <h2 className="text-3xl font-black text-center text-green-600 mb-6 tracking-tight">FoodBridge</h2>
+        <p className="text-center text-gray-500 font-medium text-sm mb-6">Create your account to get started.</p>
+        
+        {error && <div className="mb-4 text-sm text-red-700 bg-red-50 p-3 rounded-lg font-bold border border-red-200 text-center">{error}</div>}
+        
+        <form onSubmit={handleRegister} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Name</label>
-            <input type="text" name="name" className="w-full px-3 py-2 mt-1 border rounded focus:ring-green-500" onChange={handleChange} required />
+            <div className="flex justify-between items-center text-sm font-bold text-gray-700 tracking-wide">
+                <label>NAME</label> 
+                {touched.name && !fieldErrors.name && <span className="text-green-500 font-bold">✓</span>}
+            </div>
+            <input type="text" name="name" className={getFieldClass('name')} onChange={handleChange} required />
+            {touched.name && fieldErrors.name && <p className="text-xs text-red-500 mt-1 font-semibold">{fieldErrors.name}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input type="email" name="email" className="w-full px-3 py-2 mt-1 border rounded focus:ring-green-500" onChange={handleChange} required />
+            <div className="flex justify-between items-center text-sm font-bold text-gray-700 tracking-wide">
+                <label>EMAIL</label> 
+                {touched.email && !fieldErrors.email && <span className="text-green-500 font-bold">✓</span>}
+            </div>
+            <input type="email" name="email" className={getFieldClass('email')} onChange={handleChange} required />
+            {touched.email && fieldErrors.email && <p className="text-xs text-red-500 mt-1 font-semibold">{fieldErrors.email}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input type="password" name="password" className="w-full px-3 py-2 mt-1 border rounded focus:ring-green-500" onChange={handleChange} required />
+            <div className="flex justify-between items-center text-sm font-bold text-gray-700 tracking-wide">
+                <label>PASSWORD</label> 
+                {touched.password && !fieldErrors.password && <span className="text-green-500 font-bold">✓</span>}
+            </div>
+            <input type="password" name="password" className={getFieldClass('password')} onChange={handleChange} required />
+            {touched.password && fieldErrors.password && <p className="text-xs text-red-500 mt-1 font-semibold">{fieldErrors.password}</p>}
+            {touched.password && !fieldErrors.password && (
+                 <p className={`text-xs mt-1 font-bold ${getPasswordStrength(formData.password).color}`}>
+                     {getPasswordStrength(formData.password).text}
+                 </p>
+            )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Phone <span className="text-red-500">*</span></label>
-            <input type="text" name="phone" className="w-full px-3 py-2 mt-1 border rounded focus:ring-green-500" onChange={handleChange} required />
+            <div className="flex justify-between items-center text-sm font-bold text-gray-700 tracking-wide">
+                <label>PHONE <span className="text-red-500">*</span></label> 
+                {touched.phone && !fieldErrors.phone && <span className="text-green-500 font-bold">✓</span>}
+            </div>
+            <input type="text" name="phone" className={getFieldClass('phone')} onChange={handleChange} required />
+            {touched.phone && fieldErrors.phone && <p className="text-xs text-red-500 mt-1 font-semibold">{fieldErrors.phone}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Organization Name (Optional)</label>
-            <input type="text" name="orgName" className="w-full px-3 py-2 mt-1 border rounded focus:ring-green-500" onChange={handleChange} />
+            <label className="block text-sm font-bold tracking-wide text-gray-700 mb-1">ORGANIZATION (OPTIONAL)</label>
+            <input type="text" name="orgName" className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-green-500 focus:outline-none" onChange={handleChange} />
           </div>
           
-          <button type="submit" className="w-full py-2 px-4 mt-4 text-white bg-green-600 rounded hover:bg-green-700">
+          <button type="submit" disabled={hasErrors} className="w-full py-3 px-4 mt-6 text-white text-lg bg-green-600 rounded-xl hover:bg-green-700 font-black shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition transform hover:-translate-y-0.5">
             Register Let's Go
           </button>
         </form>
-        <p className="mt-4 text-sm text-center text-gray-600">
-          Already have an account? <Link to="/login" className="text-green-600 hover:underline">Log in</Link>
+        <p className="mt-8 text-sm text-center text-gray-600 font-medium">
+          Already have an account? <Link to="/login" className="text-green-600 hover:text-green-800 font-bold underline">Log in</Link>
         </p>
       </div>
     </div>

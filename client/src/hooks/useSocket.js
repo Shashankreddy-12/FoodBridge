@@ -62,6 +62,13 @@ export function useSocket(token) {
       });
     });
 
+    socket.on('upcoming_surplus', (data) => {
+      useNotificationStore.getState().addUrgent({ 
+        ...data, 
+        type: 'surplus_alert' 
+      });
+    });
+
     // Volunteer assigned — show donor and recipient who's coming
     socket.on('volunteer_assigned', (data) => {
       useNotificationStore.getState().add({
@@ -85,6 +92,10 @@ export function useSocket(token) {
         isUrgent: false,
         ...data,
       });
+    });
+
+    socket.on('impact_updated', (data) => {
+      useNotificationStore.getState().setImpactStats(data);
     });
 
     socket.on('disconnect', () => console.log('Socket disconnected'));

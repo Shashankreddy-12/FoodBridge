@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuthStore } from '../store/store';
 import SafetyBadge from '../components/SafetyBadge';
+import StarRating from '../components/StarRating';
 
 function StatusBadge({ status, urgent }) {
   if (urgent && status === 'available') {
@@ -18,9 +19,14 @@ function StatusBadge({ status, urgent }) {
   return <span className={`px-2 py-1 ${color} text-xs font-bold rounded-full capitalize`}>{status}</span>;
 }
 
-function SearchItemCard({ l, cancelClaim, user }) {
+function SearchItemCard({ l, cancelClaim, user, ratingMode = null }) {
+  let donorId = l.donor?._id || l.donor;
+  let recipientId = l.claimedBy?._id || l.claimedBy;
+  if (typeof donorId === 'object' && donorId._id) donorId = donorId._id;
+  if (typeof recipientId === 'object' && recipientId._id) recipientId = recipientId._id;
+
   return (
-    <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow transition flex flex-col sm:flex-row justify-between sm:items-center mb-4">
+    <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm hover:shadow transition flex flex-col sm:flex-row justify-between sm:items-start mb-4">
       <div className="mb-4 sm:mb-0">
         <div className="flex items-center space-x-3 mb-2">
           <h3 className="font-bold text-gray-800 text-lg">{l.title}</h3>
@@ -29,6 +35,21 @@ function SearchItemCard({ l, cancelClaim, user }) {
         </div>
         <p className="text-sm text-gray-600 mb-1 font-medium">{l.quantity} <span className="text-gray-300 mx-1">|</span> {l.foodType} <span className="text-gray-300 mx-1">|</span> Donor: {l.donor?.name || 'Unknown'}</p>
         <p className="text-xs text-gray-400">Listed: {new Date(l.createdAt).toLocaleDateString()}</p>
+        
+        {ratingMode === 'rate-donor' && l.status === 'delivered' && (
+           <div className="mt-4 pt-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-widest">Rate your experience with {l.donor?.name || 'the donor'}</p>
+              <StarRating deliveryId={l._id} ratedUserId={donorId} />
+           </div>
+        )}
+
+        {ratingMode === 'rate-recipient' && l.status === 'delivered' && (
+           <div className="mt-4 pt-3 border-t border-gray-100">
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-widest">Rate the recipient</p>
+              <StarRating deliveryId={l._id} ratedUserId={recipientId} />
+           </div>
+        )}
+
       </div>
       
       {user.role === 'recipient' && l.status === 'claimed' && (
@@ -135,14 +156,14 @@ export default function MyListings() {
             {data.donated.length > 0 && (
                 <section>
                     <h2 className="text-xl font-bold text-gray-800 mb-4">Food I Posted</h2>
-                    {data.donated.map(l => <SearchItemCard key={l._id} l={l} user={user} cancelClaim={cancelClaim} />)}
+                    {data.donated.map(l => <SearchItemCard key={l._id} l={l} user={user} cancelClaim={cancelClaim} ratingMode="rate-recipient" />)}
                 </section>
             )}
 
             {data.claimed.length > 0 && (
                 <section>
                     <h2 className="text-xl font-bold text-gray-800 mb-4">Food I Claimed</h2>
-                    {data.claimed.map(l => <SearchItemCard key={l._id} l={l} user={user} cancelClaim={cancelClaim} />)}
+                    {data.claimed.map(l => <SearchItemCard key={l._id} l={l} user={user} cancelClaim={cancelClaim} ratingMode="rate-donor" />)}
                 </section>
             )}
 

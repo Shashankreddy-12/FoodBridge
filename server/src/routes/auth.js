@@ -13,12 +13,14 @@ router.post('/register', async (req, res) => {
         const { name, email, password, lat, lng, orgName, phone } = req.body;
 
         // Basic validation
-        if (!name || !email || !password) {
-            return res.status(400).json({ error: 'Missing required components' });
-        }
-        if (!phone) {
-            return res.status(400).json({ error: 'Phone number is required' });
-        }
+        if (!name || name.trim().length < 2) 
+            return res.status(400).json({ error: 'Name must be at least 2 characters' });
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+            return res.status(400).json({ error: 'Please enter a valid email address' });
+        if (!password || password.length < 8)
+            return res.status(400).json({ error: 'Password must be at least 8 characters' });
+        if (!phone || !/^\d{10}$/.test(phone))
+            return res.status(400).json({ error: 'Phone must be exactly 10 digits' });
 
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -66,7 +68,7 @@ router.post('/login', async (req, res) => {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({ error: 'Missing credentials' });
+            return res.status(400).json({ error: 'Email and password are required' });
         }
 
         const user = await User.findOne({ email });
